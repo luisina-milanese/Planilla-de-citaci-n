@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Download, 
   FileText, 
@@ -9,9 +9,12 @@ import {
   ChevronRight, 
   LayoutGrid,
   Settings2,
-  User
+  User,
+  Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 // --- Types ---
 
@@ -25,7 +28,7 @@ interface Player {
   coords: { x: number; y: number }; // Percentage 0-100
 }
 
-type FormationType = '4-4-2' | '4-3-3' | '3-5-2';
+type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-1-4-1';
 
 // --- Constants & Mock Data ---
 
@@ -133,6 +136,13 @@ const FORMATIONS: Record<FormationType, { x: number; y: number }[]> = {
     { x: 10, y: 55 }, { x: 30, y: 50 }, { x: 50, y: 60 }, { x: 70, y: 50 }, { x: 90, y: 55 }, // MED
     { x: 35, y: 85 }, { x: 65, y: 85 }, // DEL
   ],
+  '4-1-4-1': [
+    { x: 50, y: 10 }, // GK
+    { x: 15, y: 30 }, { x: 35, y: 25 }, { x: 65, y: 25 }, { x: 85, y: 30 }, // DEF
+    { x: 50, y: 45 }, // CDM
+    { x: 15, y: 65 }, { x: 35, y: 65 }, { x: 65, y: 65 }, { x: 85, y: 65 }, // MID
+    { x: 50, y: 85 }, // ST
+  ],
 };
 
 export default function App() {
@@ -140,9 +150,50 @@ export default function App() {
   const [rival, setRival] = useState('Libertad de Sunchales');
   const [date, setDate] = useState('2023-10-12');
   const [pitchName, setPitchName] = useState('Estadio Principal');
+  const [category, setCategory] = useState('Primera Div.');
+  const [notes, setNotes] = useState('');
   const [substitutes, setSubstitutes] = useState(SUBSTITUTES);
   const [initialLineup, setInitialLineup] = useState(INITIAL_PLAYERS);
   const [staff, setStaff] = useState(STAFF);
+
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPNG = async () => {
+    if (!printRef.current) return;
+    try {
+      const dataUrl = await htmlToImage.toPng(printRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+      const link = document.createElement('a');
+      link.download = `planilla-${rival}-${date}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Error generating PNG:', error);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!printRef.current) return;
+    try {
+      const dataUrl = await htmlToImage.toPng(printRef.current, {
+        quality: 1.0,
+        pixelRatio: 3, // Higher quality for print
+        backgroundColor: '#ffffff',
+      });
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`planilla-${rival}-${date}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
 
   const handleUpdateStaff = (index: number, value: string) => {
     const newStaff = [...staff];
@@ -200,11 +251,17 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 bg-[#004A2F] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#003A25] transition-colors">
+            <button 
+              onClick={handleDownloadPDF}
+              className="flex items-center justify-center gap-2 bg-[#004A2F] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#003A25] transition-colors"
+            >
               <Download size={16} />
               PDF
             </button>
-            <button className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors">
+            <button 
+              onClick={handleDownloadPNG}
+              className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+            >
               PNG
             </button>
           </div>
@@ -214,8 +271,8 @@ export default function App() {
           {/* Tactical Scheme */}
           <div>
             <span className="sidebar-label">Esquema Táctico</span>
-            <div className="grid grid-cols-3 gap-2">
-              {(['4-4-2', '4-3-3', '3-5-2'] as FormationType[]).map((f) => (
+            <div className="grid grid-cols-2 gap-2">
+              {(['4-4-2', '4-3-3', '3-5-2', '4-1-4-1'] as FormationType[]).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFormation(f)}
@@ -236,6 +293,19 @@ export default function App() {
           <div className="space-y-4">
             <span className="sidebar-label">Datos del Partido</span>
             
+            <div>
+              <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">Categoría</label>
+              <div className="relative">
+                <Trophy size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="input-field pl-9"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">Rival</label>
               <div className="relative">
@@ -354,6 +424,17 @@ export default function App() {
             </div>
           </div>
 
+          {/* Tactical Notes Management */}
+          <div className="space-y-4">
+            <span className="sidebar-label">Notas Tácticas</span>
+            <textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Instrucciones, jugadas preparadas, etc..."
+              className="w-full input-field min-h-[100px] py-3 resize-none text-[11px]"
+            />
+          </div>
+
           {/* Squad Management */}
           <button className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-emerald-500 hover:shadow-sm transition-all group">
             <div className="flex items-center gap-3">
@@ -371,8 +452,12 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-12 overflow-y-auto flex justify-center">
-        <div className="w-[1000px] bg-white shadow-2xl rounded-sm border-t-[12px] border-[#004A2F] p-10 flex flex-col gap-8">
+      <main className="flex-1 p-12 overflow-y-auto flex justify-center bg-gray-100">
+        <div 
+          ref={printRef} 
+          className="w-[794px] h-[1123px] bg-white shadow-2xl rounded-sm border-t-[12px] border-[#004A2F] p-10 flex flex-col gap-6 overflow-hidden shrink-0"
+          style={{ aspectRatio: '1 / 1.414' }}
+        >
           
           {/* Header */}
           <header className="flex items-center justify-between border-b border-gray-100 pb-8">
@@ -398,7 +483,7 @@ export default function App() {
           {/* Match Info Bar */}
           <div className="grid grid-cols-5 gap-px bg-gray-100 border border-gray-100 rounded-lg overflow-hidden">
             {[
-              { label: 'Categoría', value: 'Primera Div.' },
+              { label: 'Categoría', value: category },
               { label: 'Rival', value: rival, color: 'text-gray-900' },
               { label: 'Fecha', value: new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) },
               { label: 'Hora', value: '15:30 HS' },
@@ -412,30 +497,30 @@ export default function App() {
           </div>
 
           {/* Content Grid */}
-          <div className="grid grid-cols-12 gap-10">
+          <div className="grid grid-cols-12 gap-6 flex-1">
             {/* Left Column: Lists */}
-            <div className="col-span-5 space-y-10">
+            <div className="col-span-5 space-y-6">
               {/* Starting Lineup */}
               <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Users size={18} className="text-[#004A2F]" />
-                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Formación Inicial</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <Users size={16} className="text-[#004A2F]" />
+                  <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-wider">Formación Inicial</h3>
                 </div>
                 <div className="border-t border-gray-200">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                        <th className="py-3 pr-4">No.</th>
-                        <th className="py-3">Jugador</th>
-                        <th className="py-3 text-right">Pos</th>
+                      <tr className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">
+                        <th className="py-1.5 pr-4">No.</th>
+                        <th className="py-1.5">Jugador</th>
+                        <th className="py-1.5 text-right">Pos</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {players.map((player) => (
-                        <tr key={player.id} className="text-sm">
-                          <td className="py-2.5 font-mono font-bold text-gray-400">{player.number}</td>
-                          <td className="py-2.5 font-bold text-gray-800">{player.name}</td>
-                          <td className="py-2.5 text-right font-mono text-[10px] font-bold text-gray-400">{player.pos}</td>
+                        <tr key={player.id} className="text-[10px]">
+                          <td className="py-1 font-mono font-bold text-gray-400">{player.number}</td>
+                          <td className="py-1 font-bold text-gray-800 truncate max-w-[140px]">{player.name}</td>
+                          <td className="py-1 text-right font-mono text-[8px] font-bold text-gray-400">{player.pos}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -445,15 +530,15 @@ export default function App() {
 
               {/* Substitutes */}
               <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText size={18} className="text-[#004A2F]" />
-                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Suplentes</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText size={16} className="text-[#004A2F]" />
+                  <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-wider">Suplentes</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-2 border-t border-gray-200 pt-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 border-t border-gray-200 pt-2">
                   {substitutes.map((sub, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm border-b border-gray-50 pb-2">
-                      <span className="font-mono font-bold text-gray-300">{sub.number}</span>
-                      <span className="font-medium text-gray-600">{sub.name}</span>
+                    <div key={i} className="flex items-center gap-2 text-[10px] border-b border-gray-50 pb-0.5">
+                      <span className="font-mono font-bold text-gray-300 w-4">{sub.number}</span>
+                      <span className="font-medium text-gray-600 truncate">{sub.name}</span>
                     </div>
                   ))}
                 </div>
@@ -461,14 +546,14 @@ export default function App() {
 
               {/* Staff */}
               <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings2 size={18} className="text-[#004A2F]" />
-                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Cuerpo Técnico</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <Settings2 size={16} className="text-[#004A2F]" />
+                  <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-wider">Cuerpo Técnico</h3>
                 </div>
-                <div className="space-y-2 border-t border-gray-200 pt-4">
+                <div className="space-y-1 border-t border-gray-200 pt-2">
                   {staff.map((member, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm border-b border-gray-50 pb-2">
-                      <span className="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase">{member.role}</span>
+                    <div key={i} className="flex items-center gap-3 text-[10px] border-b border-gray-50 pb-0.5">
+                      <span className="bg-emerald-600 text-white text-[7px] font-black px-1 py-0.5 rounded uppercase">{member.role}</span>
                       <span className="font-bold text-gray-800">{member.name}</span>
                     </div>
                   ))}
@@ -477,20 +562,20 @@ export default function App() {
             </div>
 
             {/* Right Column: Visuals */}
-            <div className="col-span-7 space-y-8">
+            <div className="col-span-7 space-y-4">
               <Pitch players={players} />
 
               {/* Bench Visual */}
-              <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100">
-                <div className="flex items-center gap-2 mb-6">
-                  <Users size={16} className="text-[#004A2F]" />
-                  <h3 className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Suplentes (Banco)</h3>
+              <div className="bg-gray-50/50 rounded-xl p-3 border border-gray-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users size={14} className="text-[#004A2F]" />
+                  <h3 className="text-[9px] font-black text-gray-900 uppercase tracking-widest">Suplentes (Banco)</h3>
                 </div>
-                <div className="grid grid-cols-4 gap-6">
+                <div className="grid grid-cols-4 gap-3">
                   {substitutes.map((sub, i) => (
-                    <div key={i} className="flex flex-col items-center gap-2">
-                      <Jersey number={sub.number} className="w-10 h-10" />
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter text-center leading-tight">
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <Jersey number={sub.number} className="w-7 h-7" />
+                      <span className="text-[7px] font-black text-gray-400 uppercase tracking-tighter text-center leading-tight truncate w-full">
                         {sub.name.split(' ').pop()}
                       </span>
                     </div>
@@ -501,9 +586,11 @@ export default function App() {
           </div>
 
           {/* Footer / Notes */}
-          <footer className="mt-auto pt-8 border-t border-gray-100">
+          <footer className="mt-auto pt-4 border-t border-gray-100">
             <span className="text-[9px] font-bold text-gray-300 uppercase tracking-[0.3em]">Notas Tácticas</span>
-            <div className="h-24 w-full border-b border-gray-100 mt-2" />
+            <div className="mt-2 text-[10px] text-gray-600 leading-relaxed whitespace-pre-wrap min-h-[60px] italic">
+              {notes || 'Escribe tus notas en el panel lateral...'}
+            </div>
           </footer>
         </div>
       </main>
