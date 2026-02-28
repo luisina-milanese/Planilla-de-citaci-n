@@ -33,27 +33,27 @@ type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-1-4-1';
 // --- Constants & Mock Data ---
 
 const INITIAL_PLAYERS: Player[] = [
-  { id: '1', number: '01', name: 'Gonzalo González', pos: 'ARQ', coords: { x: 50, y: 10 } },
-  { id: '2', number: '04', name: 'Manuel Vargas', pos: 'DEF', coords: { x: 85, y: 30 } },
-  { id: '3', number: '02', name: 'Santiago Barraza', pos: 'DEF', coords: { x: 65, y: 25 } },
-  { id: '4', number: '06', name: 'Nicolás Canavessio', pos: 'DEF', coords: { x: 35, y: 25 } },
-  { id: '5', number: '03', name: 'Raúl Chamorro', pos: 'DEF', coords: { x: 15, y: 30 } },
-  { id: '6', number: '08', name: 'Alexandro Ponce', pos: 'MED', coords: { x: 85, y: 55 } },
-  { id: '7', number: '05', name: 'Manuel Vargas', pos: 'MED', coords: { x: 65, y: 55 } },
-  { id: '8', number: '10', name: 'Joaquín Castellano', pos: 'MED', coords: { x: 35, y: 55 } },
-  { id: '9', number: '11', name: 'Gonzalo Schonfeld', pos: 'MED', coords: { x: 15, y: 55 } },
-  { id: '10', number: '07', name: 'Adrián Rodríguez', pos: 'DEL', coords: { x: 35, y: 85 } },
-  { id: '11', number: '09', name: 'Pedro Muné', pos: 'DEL', coords: { x: 65, y: 85 } },
+  { id: '1', number: '01', name: '', pos: 'ARQ', coords: { x: 50, y: 10 } },
+  { id: '2', number: '04', name: '', pos: 'DEF', coords: { x: 85, y: 30 } },
+  { id: '3', number: '02', name: '', pos: 'DEF', coords: { x: 65, y: 25 } },
+  { id: '4', number: '06', name: '', pos: 'DEF', coords: { x: 35, y: 25 } },
+  { id: '5', number: '03', name: '', pos: 'DEF', coords: { x: 15, y: 30 } },
+  { id: '6', number: '08', name: '', pos: 'MED', coords: { x: 85, y: 55 } },
+  { id: '7', number: '05', name: '', pos: 'MED', coords: { x: 65, y: 55 } },
+  { id: '8', number: '10', name: '', pos: 'MED', coords: { x: 35, y: 55 } },
+  { id: '9', number: '11', name: '', pos: 'MED', coords: { x: 15, y: 55 } },
+  { id: '10', number: '07', name: '', pos: 'DEL', coords: { x: 35, y: 85 } },
+  { id: '11', number: '09', name: '', pos: 'DEL', coords: { x: 65, y: 85 } },
 ];
 
 const SUBSTITUTES = [
-  { number: '12', name: 'A. Ruffinetti' },
-  { number: '13', name: 'I. Baudin' },
-  { number: '14', name: 'F. Hansen' },
-  { number: '15', name: 'G. Pardo' },
-  { number: '16', name: 'F. Cima' },
-  { number: '17', name: 'C. Sánchez' },
-  { number: '18', name: 'A. Maza' },
+  { number: '12', name: '' },
+  { number: '13', name: '' },
+  { number: '14', name: '' },
+  { number: '15', name: '' },
+  { number: '16', name: '' },
+  { number: '17', name: '' },
+  { number: '18', name: '' },
 ];
 
 const STAFF = [
@@ -209,7 +209,7 @@ export default function App() {
 
   const handleAddSubstitute = () => {
     const nextNum = (substitutes.length > 0 ? Math.max(...substitutes.map(s => parseInt(s.number))) + 1 : 12).toString();
-    setSubstitutes([...substitutes, { number: nextNum, name: 'Nuevo Jugador' }]);
+    setSubstitutes([...substitutes, { number: nextNum, name: '' }]);
   };
 
   const handleRemoveSubstitute = (index: number) => {
